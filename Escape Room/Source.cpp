@@ -15,7 +15,8 @@ bool firstMouse = true;
 float yaw = -80, pitch = -20;
 float lastX = 400, lastY = 300;
 float sensitivity = 0.05f;
-bool skipNextMouseMovement = true;			//End of Camera Variables
+bool skipNextMouseMovement = true;	//End of Camera Variables
+float fanRotationAngle = 0.0f;
 float matamb[] = { 1.0f,1.0f,1.0f,1.0f },
 matdiff[] = { 1.0f,1.0f,1.0f,1.0f },
 matspec[] = { 0.64f,1.0f,1.0f,1.0f },
@@ -27,7 +28,8 @@ lightPos[] = { 1.0, 1.0, 1.0, 1.0 };
 void background();
 void mydraw();
 void reshape(int, int);
-void timer(int);
+void fanTimer(int);
+void lightTimer(int);
 void keyboard(unsigned char, int, int);
 void specialKeyboard(int, int, int);
 void load(int imgnum);
@@ -44,6 +46,8 @@ void roof();
 void Room();
 void drawChair();
 void chair();
+void drawTable();
+void drawFan();
 
 
 void main(int argc, char** argv) {
@@ -60,7 +64,8 @@ void main(int argc, char** argv) {
 	glutPassiveMotionFunc(mouseMovement);
 	glutDisplayFunc(mydraw);
 	glutReshapeFunc(reshape);
-	glutTimerFunc(0, timer, 0);
+	glutTimerFunc(0, fanTimer, 0); // fan
+	glutTimerFunc(0, lightTimer, 0); // light
 	glutKeyboardFunc(keyboard);
 	glutSpecialFunc(specialKeyboard);
 
@@ -105,8 +110,17 @@ void mydraw() {
 		centerX, centerY, centerZ,
 		0, 1, 0);
 
+	glPushMatrix();
+	glDisable(GL_LIGHTING);
+	glRotatef(fanRotationAngle, 0.0f, 1.0f, 0.0f); 
+	drawFan();
+	glPopMatrix();
+	glEnable(GL_LIGHTING);
+
 	Room();
 	chair();
+
+	drawTable();
 
 	glutSwapBuffers();
 }
@@ -120,11 +134,20 @@ void reshape(int w, int h) {
 	gluPerspective(45, ratio, 1, 100);
 	glMatrixMode(GL_MODELVIEW);
 }
-
-void timer(int v) {
-	toggleLight(v);
+// Light Toggle Timer
+void lightTimer(int v) {
+	toggleLight(v); 
 	glutPostRedisplay();
-	glutTimerFunc(10000, timer, 0);
+	glutTimerFunc(10000, lightTimer, 0); 
+}
+// fan movement timer
+void fanTimer(int v) {
+	fanRotationAngle += 20.0f; 
+	if (fanRotationAngle > 360.0f)
+		fanRotationAngle -= 360.0f;
+
+	glutPostRedisplay();
+	glutTimerFunc(100, fanTimer, 0); 
 }
 
 void keyboard(unsigned char key, int x, int y) {
@@ -198,7 +221,6 @@ void specialKeyboard(int key, int x, int y) {
 		centerZ += sin(toRad(yaw)) * speed;
 	}
 	glutPostRedisplay();
-	//printf("eye: %.2f %.2f %.2f | center: %.2f %.2f %.2f\n", eyex, eyey, eyez, centerX, centerY, centerZ);
 }
 
 
@@ -215,6 +237,16 @@ void load(int imgnum) {
 	}
 	else if (imgnum == 3) {
 		data = stbi_load("chair-wood.jpg", &width, &height, &nrChannels, 0);
+		check(data);
+	}
+	else if (imgnum == 4) {
+
+		data = stbi_load("table_texture.jpg", &width, &height, &nrChannels, 0);
+		check(data);
+	}
+	else if (imgnum == 5) {
+
+		data = stbi_load("fan_txt.PNG", &width, &height, &nrChannels, 0);
 		check(data);
 	}
 }
@@ -541,3 +573,208 @@ void chair()
 	glPopMatrix();
 }
 
+void drawTable() {
+	glEnable(GL_TEXTURE_2D);
+	load(4);  // Load table texture (Capture.PNG)
+
+	// Draw Tabletop
+	glPushMatrix();
+	glTranslatef(0.0f, 0.0f, -8.0f); // Move the table deeper into the room (away from front)
+
+	glBegin(GL_QUADS);
+
+	// Top Face
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, 0.5f, -3.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(5.0f, 0.5f, -3.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(5.0f, 0.5f, 3.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f, 0.5f, 3.0f);
+
+	// Bottom Face (optional, depending on your preference for texturing the bottom side)
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f, -3.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(5.0f, -0.5f, -3.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(5.0f, -0.5f, 3.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f, -0.5f, 3.0f);
+
+	// Front Face
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f, 3.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(5.0f, -0.5f, 3.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(5.0f, 0.5f, 3.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f, 0.5f, 3.0f);
+
+	// Back Face
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f, -3.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(5.0f, -0.5f, -3.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(5.0f, 0.5f, -3.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f, 0.5f, -3.0f);
+
+	// Left Face
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(-5.0f, -0.5f, -3.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(-5.0f, -0.5f, 3.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(-5.0f, 0.5f, 3.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(-5.0f, 0.5f, -3.0f);
+
+	// Right Face
+	glTexCoord2f(0.0f, 0.0f); glVertex3f(5.0f, -0.5f, -3.0f);
+	glTexCoord2f(1.0f, 0.0f); glVertex3f(5.0f, -0.5f, 3.0f);
+	glTexCoord2f(1.0f, 1.0f); glVertex3f(5.0f, 0.5f, 3.0f);
+	glTexCoord2f(0.0f, 1.0f); glVertex3f(5.0f, 0.5f, -3.0f);
+
+	glEnd();
+	glPopMatrix();
+
+	// Disable texture if legs don't need textures
+	glDisable(GL_TEXTURE_2D);
+
+	// Draw Table Legs
+	float legHeight = 2.0f;
+	float legSize = 0.3f;
+	float offsetX = 4.0f;
+	float offsetZ = 2.0f;
+	float tableZ = -8.0f; // same as table
+
+	// Enable texture for the legs
+	glEnable(GL_TEXTURE_2D);
+	load(4);  // Load texture for legs if it's different
+
+	for (int dx = -1; dx <= 1; dx += 2) {
+		for (int dz = -1; dz <= 1; dz += 2) {
+			glPushMatrix();
+			glTranslatef(dx * offsetX, -1.6f, dz * offsetZ + tableZ);
+			glScalef(legSize, legHeight, legSize);
+
+			// Draw each leg as a cube with texture coordinates
+			glBegin(GL_QUADS);
+
+			// Front Face of Leg
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, 1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(1.0f, -1.0f, 1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(1.0f, 1.0f, 1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, 1.0f);
+
+			// Back Face of Leg
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(1.0f, 1.0f, -1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, -1.0f);
+
+			// Left Face of Leg
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(-1.0f, -1.0f, 1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(-1.0f, 1.0f, 1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, -1.0f);
+
+			// Right Face of Leg
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(1.0f, -1.0f, 1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(1.0f, 1.0f, 1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(1.0f, 1.0f, -1.0f);
+
+			// Top Face of Leg
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, 1.0f, -1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(1.0f, 1.0f, -1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(1.0f, 1.0f, 1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, 1.0f, 1.0f);
+
+			// Bottom Face of Leg
+			glTexCoord2f(0.0f, 0.0f); glVertex3f(-1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 0.0f); glVertex3f(1.0f, -1.0f, -1.0f);
+			glTexCoord2f(1.0f, 1.0f); glVertex3f(1.0f, -1.0f, 1.0f);
+			glTexCoord2f(0.0f, 1.0f); glVertex3f(-1.0f, -1.0f, 1.0f);
+
+			glEnd();
+			glPopMatrix();
+		}
+	}
+
+	// Disable texture after drawing legs
+	glDisable(GL_TEXTURE_2D);
+}
+
+void drawFan() {
+	glEnable(GL_TEXTURE_2D);
+
+	load(5);
+
+	float poleHeight = 3.0f;
+	float poleSize = 0.3f;
+
+	glPushMatrix();
+	glTranslatef(0.0f, 17.0f, 0.0f); // Position at ceiling level
+
+	// ==== Draw Pole ====
+	glPushMatrix();
+	glScalef(poleSize, poleHeight, poleSize);
+
+	glBegin(GL_QUADS);
+	// Pole faces
+	glTexCoord2f(0, 0); glVertex3f(-0.5f, 0, 0.5f);
+	glTexCoord2f(1, 0); glVertex3f(0.5f, 0, 0.5f);
+	glTexCoord2f(1, 1); glVertex3f(0.5f, 1, 0.5f);
+	glTexCoord2f(0, 1); glVertex3f(-0.5f, 1, 0.5f);
+
+	glTexCoord2f(0, 0); glVertex3f(-0.5f, 0, -0.5f);
+	glTexCoord2f(1, 0); glVertex3f(0.5f, 0, -0.5f);
+	glTexCoord2f(1, 1); glVertex3f(0.5f, 1, -0.5f);
+	glTexCoord2f(0, 1); glVertex3f(-0.5f, 1, -0.5f);
+
+	glTexCoord2f(0, 0); glVertex3f(-0.5f, 0, -0.5f);
+	glTexCoord2f(1, 0); glVertex3f(-0.5f, 0, 0.5f);
+	glTexCoord2f(1, 1); glVertex3f(-0.5f, 1, 0.5f);
+	glTexCoord2f(0, 1); glVertex3f(-0.5f, 1, -0.5f);
+
+	glTexCoord2f(0, 0); glVertex3f(0.5f, 0, -0.5f);
+	glTexCoord2f(1, 0); glVertex3f(0.5f, 0, 0.5f);
+	glTexCoord2f(1, 1); glVertex3f(0.5f, 1, 0.5f);
+	glTexCoord2f(0, 1); glVertex3f(0.5f, 1, -0.5f);
+	glEnd();
+
+	glPopMatrix(); // Done drawing pole
+
+	// ==== Move down slightly ====
+	glTranslatef(0.0f, 0.0f, 0.0f);
+
+	// ==== Draw Fan Center ====
+	float baseRadius = 1.2f;
+	int numSegments = 50;
+
+	glBegin(GL_TRIANGLE_FAN);
+	glTexCoord2f(0.5f, 0.5f);
+	glVertex3f(0, 0, 0);
+
+	for (int i = 0; i <= numSegments; i++) {
+		float angle = i * 2.0f * 3.14159f / numSegments;
+		float x = cos(angle) * baseRadius;
+		float z = sin(angle) * baseRadius;
+		glTexCoord2f(0.5f + 0.5f * cos(angle), 0.5f + 0.5f * sin(angle));
+		glVertex3f(x, 0, z);
+	}
+	glEnd();
+
+	// ==== Rotate Blades ====
+	glRotatef(fanRotationAngle, 0, 1, 0);
+
+	// ==== Draw Blades ====
+	float bladeLength = 7.5f;
+	float bladeWidth = 0.7f;
+	float bladeHeight = 0.1f;
+
+	for (int i = 0; i < 4; i++) {
+		glPushMatrix();
+		glRotatef(i * 90.0f, 0, 1, 0);
+		glTranslatef(bladeLength / 2, 0, 0);
+
+		glScalef(bladeLength, bladeHeight, bladeWidth);
+
+		glBegin(GL_QUADS);
+		glTexCoord2f(0, 0); glVertex3f(-0.5f, 0, 0.5f);
+		glTexCoord2f(1, 0); glVertex3f(0.5f, 0, 0.5f);
+		glTexCoord2f(1, 1); glVertex3f(0.5f, 0, -0.5f);
+		glTexCoord2f(0, 1); glVertex3f(-0.5f, 0, -0.5f);
+		glEnd();
+
+		glPopMatrix();
+	}
+
+	glPopMatrix();
+	glDisable(GL_TEXTURE_2D);
+}
