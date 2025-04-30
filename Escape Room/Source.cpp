@@ -8,7 +8,14 @@ unsigned int texture;
 int width, height, nrChannels;
 unsigned char* data = NULL;
 bool fullScreenMode = true , lightOn = false;
-float ratio, eyey = 10, eyez = 40, eyex = 0 , centerX, centerY, centerZ = -20;
+float ratio, eyey = 10, eyez = 40, eyex = 0;
+float centerX, centerY, centerZ = 20;
+const float PI = 3.14159265;				// Start of Camera Variables
+bool firstMouse = true;
+float yaw = -80, pitch = -20;
+float lastX = 400, lastY = 300;
+float sensitivity = 0.05f;
+bool skipNextMouseMovement = true;			//End of Camera Variables
 float matamb[] = { 1.0f,1.0f,1.0f,1.0f },
 matdiff[] = { 1.0f,1.0f,1.0f,1.0f },
 matspec[] = { 0.64f,1.0f,1.0f,1.0f },
@@ -25,6 +32,8 @@ void keyboard(unsigned char, int, int);
 void specialKeyboard(int, int, int);
 void load(int imgnum);
 void check(unsigned char* data);
+float toRad(float);
+void mouseMovement(int, int);
 
 void rightWall();
 void leftWall();
@@ -46,6 +55,9 @@ void main(int argc, char** argv) {
 	glutFullScreen();
 
 	background();
+
+	glutSetCursor(GLUT_CURSOR_NONE);
+	glutPassiveMotionFunc(mouseMovement);
 	glutDisplayFunc(mydraw);
 	glutReshapeFunc(reshape);
 	glutTimerFunc(0, timer, 0);
@@ -58,7 +70,6 @@ void main(int argc, char** argv) {
 void background() {
 	glClearColor(0, 0, 0, 1);
 	glEnable(GL_DEPTH_TEST);
-	//glEnable(GL_TEXTURE_2D);
 	// Lighting
 	glLightfv(GL_LIGHT0, GL_POSITION, lightPos);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, lightamb);
@@ -73,6 +84,7 @@ void background() {
 	glMaterialfv(GL_FRONT, GL_SHININESS, matshin);
 
 }
+
 void toggleLight(int value) {
 	lightOn = !lightOn;
 
@@ -133,34 +145,60 @@ void specialKeyboard(int key, int x, int y) {
 				GetSystemMetrics(SM_CYSCREEN) / 4);
 		}
 	}
+	//if (key == GLUT_KEY_RIGHT) {
+	//	centerX += .9;
+	//	centerZ += .001;
+	//}
+	//if (key == GLUT_KEY_LEFT) {
+	//	centerX -= .9;
+	//	centerZ -= .001;
+	//}
+	//if (key == GLUT_KEY_DOWN) {
+	//	eyez += 1;
+	//	centerZ +=1;
+	//	
+	//}
+	//if (key == GLUT_KEY_UP) {
+	//	eyez -= 1;
+	//	centerZ -=1;
+	//}
+	//if (key == GLUT_KEY_F3) {
+	//	if (centerY > -2) { // Don't go lower than floor
+	//		centerY -= 0.5;
+	//	}
+	//}
+	//if (key == GLUT_KEY_F4) {
+	//	if (centerY < 20) { // Don't go higher than roof
+	//		centerY += 0.5;
+	//	}
+	//}
+	float speed = 1.5;
 	if (key == GLUT_KEY_RIGHT) {
-		centerX += .9;
-		centerZ += .001;
+		eyex += cos(toRad(yaw) + PI / 2) * speed;
+		eyez += sin(toRad(yaw) + PI / 2) * speed;
+		centerX += cos(toRad(yaw) + PI / 2) * speed;
+		centerZ += sin(toRad(yaw) + PI / 2) * speed;
 	}
 	if (key == GLUT_KEY_LEFT) {
-		centerX -= .9;
-		centerZ -= .001;
+		eyex -= cos(toRad(yaw) + PI / 2) * speed;
+		eyez -= sin(toRad(yaw) + PI / 2) * speed;
+		centerX -= cos(toRad(yaw) + PI / 2) * speed;
+		centerZ -= sin(toRad(yaw) + PI / 2) * speed;
 	}
 	if (key == GLUT_KEY_DOWN) {
-		eyez += 1;
-		centerZ +=1;
-		
+		eyex -= cos(toRad(yaw)) * speed;
+		eyez -= sin(toRad(yaw)) * speed;
+		centerX -= cos(toRad(yaw)) * speed;
+		centerZ -= sin(toRad(yaw)) * speed;
 	}
 	if (key == GLUT_KEY_UP) {
-		eyez -= 1;
-		centerZ -=1;
-	}
-	if (key == GLUT_KEY_F3) {
-		if (centerY > -2) { // Don't go lower than floor
-			centerY -= 0.5;
-		}
-	}
-	if (key == GLUT_KEY_F4) {
-		if (centerY < 20) { // Don't go higher than roof
-			centerY += 0.5;
-		}
+		eyex += cos(toRad(yaw)) * speed;
+		eyez += sin(toRad(yaw)) * speed;
+		centerX += cos(toRad(yaw)) * speed;
+		centerZ += sin(toRad(yaw)) * speed;
 	}
 	glutPostRedisplay();
+	//printf("eye: %.2f %.2f %.2f | center: %.2f %.2f %.2f\n", eyex, eyey, eyez, centerX, centerY, centerZ);
 }
 
 
@@ -198,6 +236,81 @@ void check(unsigned char* data) {
 		std::cout << "Failed to load texture" << std::endl;
 	}
 	stbi_image_free(data);
+}
+
+float toRad(float deg) {
+	return (deg * PI) / 180;
+}
+
+//void mouseMovement(int horizontalPos, int verticalPos) {
+//	if (firstMouse)
+//	{
+//		glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH) / 2, glutGet(GLUT_WINDOW_HEIGHT) / 2);
+//		lastX = horizontalPos;
+//		lastY = verticalPos;
+//		firstMouse = false;
+//	}
+//	if (skipNextMouseMovement) {
+//		skipNextMouseMovement = false;
+//		//lastX = glutGet(GLUT_WINDOW_WIDTH) / 2;
+//		//lastY = glutGet(GLUT_WINDOW_HEIGHT) / 2;
+//		return;
+//	}
+//	float xoffset = horizontalPos - lastX;
+//	float yoffset = lastY - verticalPos;
+//	lastX = horizontalPos;
+//	lastY = verticalPos;
+//
+//	xoffset *= sensitivity;
+//	yoffset *= sensitivity;
+//
+//	yaw += xoffset;
+//	if (yaw > 360.0f) yaw -= 360.0f;
+//	if (yaw < 0.0f) yaw += 360.0f;
+//
+//	pitch += yoffset;
+//	if (pitch > 89)
+//		pitch = 89;
+//	if (pitch < -89)
+//		pitch = -89;
+//
+//	centerX = eyex + cos(toRad(yaw)) * cos(toRad(pitch));
+//	centerY = eyey + sin(toRad(pitch));
+//	centerZ = eyez + sin(toRad(yaw)) * cos(toRad(pitch));
+//
+//	glutWarpPointer(glutGet(GLUT_WINDOW_WIDTH) / 2, glutGet(GLUT_WINDOW_HEIGHT) / 2);
+//	skipNextMouseMovement = true;
+//	glutPostRedisplay();
+//}
+
+void mouseMovement(int horizontalPos, int verticalPos) {
+	int centerScreenX = glutGet(GLUT_WINDOW_WIDTH) / 2;
+	int centerScreenY = glutGet(GLUT_WINDOW_HEIGHT) / 2;
+
+	if (horizontalPos == centerScreenX && verticalPos == centerScreenY) {
+		return;
+	}
+
+	float xoffset = horizontalPos - centerScreenX;
+	float yoffset = centerScreenY - verticalPos;
+
+	xoffset *= sensitivity;
+	yoffset *= sensitivity;
+
+	yaw += xoffset;
+	if (yaw > 360.0f) yaw -= 360.0f;
+	if (yaw < 0.0f) yaw += 360.0f;
+
+	pitch += yoffset;
+	if (pitch > 89.0f) pitch = 89.0f;
+	if (pitch < -89.0f) pitch = -89.0f;
+
+	centerX = eyex + cos(toRad(yaw)) * cos(toRad(pitch));
+	centerY = eyey + sin(toRad(pitch));
+	centerZ = eyez + sin(toRad(yaw)) * cos(toRad(pitch));
+
+	glutWarpPointer(centerScreenX, centerScreenY);
+	glutPostRedisplay();
 }
 
 void floor() {
@@ -418,124 +531,6 @@ void drawChair()
 
 	glDisable(GL_TEXTURE_2D);
 }
-
-
-//void drawChair() {
-//
-//	glBegin(GL_QUADS);
-//
-//	glVertex3f(1.0f, 1.5f, 1.0f);
-//	glVertex3f(-1.0f, 1.5f, 1.0f);
-//	glVertex3f(-1.0f, 1.5f, -1.0f);
-//	glVertex3f(1.0f, 1.5f, -1.0f);
-//	glEnd();
-//
-//	
-//	float legWidth = 0.2f;
-//	float legHeight = 1.5f;
-//
-//	// Front Right Leg
-//	glBegin(GL_QUADS);
-//	// Front
-//	glVertex3f(0.9f, 0.0f, 0.9f);
-//	glVertex3f(0.7f, 0.0f, 0.9f);
-//	glVertex3f(0.7f, legHeight, 0.9f);
-//	glVertex3f(0.9f, legHeight, 0.9f);
-//	// Back
-//	glVertex3f(0.9f, 0.0f, 0.7f);
-//	glVertex3f(0.7f, 0.0f, 0.7f);
-//	glVertex3f(0.7f, legHeight, 0.7f);
-//	glVertex3f(0.9f, legHeight, 0.7f);
-//	// Right 
-//	glVertex3f(0.9f, 0.0f, 0.9f);
-//	glVertex3f(0.9f, 0.0f, 0.7f);
-//	glVertex3f(0.9f, legHeight, 0.7f);
-//	glVertex3f(0.9f, legHeight, 0.9f);
-//	// Left
-//	glVertex3f(0.7f, 0.0f, 0.9f);
-//	glVertex3f(0.7f, 0.0f, 0.7f);
-//	glVertex3f(0.7f, legHeight, 0.7f);
-//	glVertex3f(0.7f, legHeight, 0.9f);
-//	glEnd();
-//
-//	// Front Left Leg
-//	glBegin(GL_QUADS);
-//	glVertex3f(-0.7f, 0.0f, 0.9f);
-//	glVertex3f(-0.9f, 0.0f, 0.9f);
-//	glVertex3f(-0.9f, legHeight, 0.9f);
-//	glVertex3f(-0.7f, legHeight, 0.9f);
-//
-//	glVertex3f(-0.7f, 0.0f, 0.7f);
-//	glVertex3f(-0.9f, 0.0f, 0.7f);
-//	glVertex3f(-0.9f, legHeight, 0.7f);
-//	glVertex3f(-0.7f, legHeight, 0.7f);
-//
-//	glVertex3f(-0.9f, 0.0f, 0.9f);
-//	glVertex3f(-0.9f, 0.0f, 0.7f);
-//	glVertex3f(-0.9f, legHeight, 0.7f);
-//	glVertex3f(-0.9f, legHeight, 0.9f);
-//
-//	glVertex3f(-0.7f, 0.0f, 0.9f);
-//	glVertex3f(-0.7f, 0.0f, 0.7f);
-//	glVertex3f(-0.7f, legHeight, 0.7f);
-//	glVertex3f(-0.7f, legHeight, 0.9f);
-//	glEnd();
-//
-//	// Back Right Leg
-//	glBegin(GL_QUADS);
-//	glVertex3f(0.9f, 0.0f, -0.7f);
-//	glVertex3f(0.7f, 0.0f, -0.7f);
-//	glVertex3f(0.7f, legHeight, -0.7f);
-//	glVertex3f(0.9f, legHeight, -0.7f);
-//
-//	glVertex3f(0.9f, 0.0f, -0.9f);
-//	glVertex3f(0.7f, 0.0f, -0.9f);
-//	glVertex3f(0.7f, legHeight, -0.9f);
-//	glVertex3f(0.9f, legHeight, -0.9f);
-//
-//	glVertex3f(0.9f, 0.0f, -0.7f);
-//	glVertex3f(0.9f, 0.0f, -0.9f);
-//	glVertex3f(0.9f, legHeight, -0.9f);
-//	glVertex3f(0.9f, legHeight, -0.7f);
-//
-//	glVertex3f(0.7f, 0.0f, -0.7f);
-//	glVertex3f(0.7f, 0.0f, -0.9f);
-//	glVertex3f(0.7f, legHeight, -0.9f);
-//	glVertex3f(0.7f, legHeight, -0.7f);
-//	glEnd();
-//
-//	// Back Left Leg
-//	glBegin(GL_QUADS);
-//	glVertex3f(-0.7f, 0.0f, -0.7f);
-//	glVertex3f(-0.9f, 0.0f, -0.7f);
-//	glVertex3f(-0.9f, legHeight, -0.7f);
-//	glVertex3f(-0.7f, legHeight, -0.7f);
-//
-//	glVertex3f(-0.7f, 0.0f, -0.9f);
-//	glVertex3f(-0.9f, 0.0f, -0.9f);
-//	glVertex3f(-0.9f, legHeight, -0.9f);
-//	glVertex3f(-0.7f, legHeight, -0.9f);
-//
-//	glVertex3f(-0.9f, 0.0f, -0.7f);
-//	glVertex3f(-0.9f, 0.0f, -0.9f);
-//	glVertex3f(-0.9f, legHeight, -0.9f);
-//	glVertex3f(-0.9f, legHeight, -0.7f);
-//
-//	glVertex3f(-0.7f, 0.0f, -0.7f);
-//	glVertex3f(-0.7f, 0.0f, -0.9f);
-//	glVertex3f(-0.7f, legHeight, -0.9f);
-//	glVertex3f(-0.7f, legHeight, -0.7f);
-//	glEnd();
-//
-//	// Back
-//	glBegin(GL_QUADS);
-//	glVertex3f(1.0f, 3.5f, -1.0f);
-//	glVertex3f(-1.0f, 3.5f, -1.0f);
-//	glVertex3f(-1.0f, 1.5f, -1.0f);
-//	glVertex3f(1.0f, 1.5f, -1.0f);
-//	glEnd();
-//		
-//}
 
 void chair()
 {
